@@ -3,7 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-const FormData = require('form-data');
+const FormData = require('form-data'); // ✅ Necesario para subir archivos
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,13 +17,15 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
   try {
     const datos = req.body;
     const tokenEdicion = uuidv4();
+
+    const fotoArchivo = req.file;
     let urlFoto = '';
 
-    if (req.file) {
+    if (fotoArchivo) {
       const formData = new FormData();
-      formData.append('file', req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype
+      formData.append('file', fotoArchivo.buffer, {
+        filename: fotoArchivo.originalname,
+        contentType: fotoArchivo.mimetype,
       });
 
       const uploadFoto = await axios.post(
@@ -32,12 +34,12 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
         {
           headers: {
             ...formData.getHeaders(),
-            'xc-token': process.env.NOCODB_TOKEN
+            'xc-token': process.env.NOCODB_TOKEN,
           }
         }
       );
 
-      urlFoto = uploadFoto.data.fileUrl;
+      urlFoto = uploadFoto.data.downloadUrl;
     }
 
     const nuevoRegistro = {
@@ -60,7 +62,7 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 
     res.json({ success: true, token: tokenEdicion });
   } catch (err) {
-    console.error(err?.response?.data || err.message || err);
+    console.error(err?.response?.data || err.message);
     res.status(500).json({ success: false, error: 'Error al registrar los datos.' });
   }
 });
@@ -68,4 +70,5 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
 });
+
 
