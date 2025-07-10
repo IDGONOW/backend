@@ -3,7 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-const FormData = require('form-data'); // ✅ Necesario para subir archivos
+const FormData = require('form-data');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -28,18 +28,18 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
         contentType: fotoArchivo.mimetype,
       });
 
-      const uploadFoto = await axios.post(
+      const uploadResponse = await axios.post(
         'https://idgonow.up.railway.app/api/v2/assets',
         formData,
         {
           headers: {
             ...formData.getHeaders(),
             'xc-token': process.env.NOCODB_TOKEN,
-          }
+          },
         }
       );
 
-      urlFoto = uploadFoto.data.downloadUrl;
+      urlFoto = uploadResponse.data.downloadUrl;
     }
 
     const nuevoRegistro = {
@@ -50,7 +50,7 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
       }
     };
 
-    const respuesta = await axios.post(
+    await axios.post(
       'https://idgonow.up.railway.app/api/v2/tables/m1ebsgkhbspdiqq/records',
       nuevoRegistro,
       {
@@ -70,5 +70,4 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
 });
-
 
