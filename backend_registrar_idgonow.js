@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+const FormData = require('form-data');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,24 +17,27 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
   try {
     const datos = req.body;
     const tokenEdicion = uuidv4();
-
-    const fotoArchivo = req.file;
     let urlFoto = '';
 
-    if (fotoArchivo) {
+    if (req.file) {
+      const formData = new FormData();
+      formData.append('file', req.file.buffer, {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype
+      });
+
       const uploadFoto = await axios.post(
         'https://idgonow.up.railway.app/api/v2/assets',
-        fotoArchivo.buffer,
+        formData,
         {
           headers: {
-            'Content-Type': fotoArchivo.mimetype,
-            'xc-token': process.env.NOCODB_TOKEN,
-            'Content-Disposition': `attachment; filename="${fotoArchivo.originalname}"`
+            ...formData.getHeaders(),
+            'xc-token': process.env.NOCODB_TOKEN
           }
         }
       );
 
-      urlFoto = uploadFoto.data.downloadUrl;
+      urlFoto = uploadFoto.data.fileUrl;
     }
 
     const nuevoRegistro = {
@@ -56,7 +60,7 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 
     res.json({ success: true, token: tokenEdicion });
   } catch (err) {
-    console.error(err?.response?.data || err.message);
+    console.error(err?.response?.data || err.message || err);
     res.status(500).json({ success: false, error: 'Error al registrar los datos.' });
   }
 });
