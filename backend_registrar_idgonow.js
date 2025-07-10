@@ -4,6 +4,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 const FormData = require('form-data');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,29 +18,28 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
   try {
     const datos = req.body;
     const tokenEdicion = uuidv4();
-
     const fotoArchivo = req.file;
     let urlFoto = '';
 
     if (fotoArchivo) {
-      const formData = new FormData();
-      formData.append('file', fotoArchivo.buffer, {
+      const form = new FormData();
+      form.append('file', fotoArchivo.buffer, {
         filename: fotoArchivo.originalname,
-        contentType: fotoArchivo.mimetype,
+        contentType: fotoArchivo.mimetype
       });
 
-      const uploadResponse = await axios.post(
+      const uploadFoto = await axios.post(
         'https://idgonow.up.railway.app/api/v2/assets',
-        formData,
+        form,
         {
           headers: {
-            ...formData.getHeaders(),
-            'xc-token': process.env.NOCODB_TOKEN,
-          },
+            ...form.getHeaders(),
+            'xc-token': process.env.NOCODB_TOKEN
+          }
         }
       );
 
-      urlFoto = uploadResponse.data.downloadUrl;
+      urlFoto = uploadFoto.data.downloadUrl;
     }
 
     const nuevoRegistro = {
