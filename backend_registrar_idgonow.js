@@ -70,4 +70,3 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
 });
-
