@@ -4,8 +4,6 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 const FormData = require('form-data');
-require('dotenv').config();
-
 const app = express();
 const port = process.env.PORT || 3000;
 
