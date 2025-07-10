@@ -1,52 +1,74 @@
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer'); // ← FALTABA ESTA LÍNEA
+const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.post('/registrar', upload.single('Foto'), async (req, res) => {
     try {
         const datos = req.body;
-        const archivo = req.file;  // Aquí está el archivo de imagen
+        const foto = req.file;
         const tokenEdicion = uuidv4();
 
-        const campos = {
-            ...datos,
-            token_edicion: tokenEdicion
-        };
+        const formData = new FormData();
 
-        // Si hay imagen, la adjuntamos
-        if (archivo) {
-            campos["Foto"] = [
-                {
-                    name: archivo.originalname,
-                    data: archivo.buffer.toString('base64')
-                }
-            ];
+        // Añadir todos los campos del body al formData
+        for (const key in datos) {
+            formData.append(key, datos[key]);
         }
 
-        const nuevoRegistro = { fields: campos };
+        // Añadir el token y tag
+        formData.append('token_edicion', tokenEdicion);
+        formData.append('tag', datos.tag);
+
+        // Adjuntar la foto si existe
+        if (foto) {
+            formData.append('Foto', foto.buffer, {
+                filename: foto.originalname,
+                contentType: foto.mimetype
+            });
+        }
 
         const respuesta = await axios.post(
             'https://idgonow.up.railway.app/api/v2/tables/m1ebsgkhbspdiqq/records',
-            nuevoRegistro,
+            formData,
             {
                 headers: {
                     'xc-token': process.env.NOCODB_TOKEN,
-                    'Content-Type': 'application/json'
+                    ...formData.getHeaders()
                 }
             }
         );
 
         const idRegistro = respuesta.data.id;
-        const tag = datos.tag;
 
+        // Confirmar que el tag se guarda (si no se guarda por el formData anterior)
         await axios.patch(
             `https://idgonow.up.railway.app/api/v2/tables/m1ebsgkhbspdiqq/records/${idRegistro}`,
-            { fields: { tag: tag } },
-            { headers: { 'xc-token': process.env.NOCODB_TOKEN } }
+            { fields: { tag: datos.tag } },
+            {
+                headers: {
+                    'xc-token': process.env.NOCODB_TOKEN
+                }
+            }
         );
 
         res.json({ success: true, token: tokenEdicion });
     } catch (err) {
-        console.error(err);
+        console.error('Error al registrar los datos:', err.message);
         res.status(500).json({ success: false, error: 'Error al registrar los datos.' });
     }
 });
+
+app.listen(port, () => {
+    console.log(`Servidor escuchando en puerto ${port}`);
+});
+
