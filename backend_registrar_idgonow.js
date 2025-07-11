@@ -16,32 +16,42 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.post('/registrar', upload.single('Foto'), async (req, res) => {
   try {
+    console.log("➡️ Datos recibidos:", req.body);
+    console.log("➡️ Archivo recibido:", req.file);
+
     const datos = req.body;
     const tokenEdicion = uuidv4();
 
     const fotoArchivo = req.file;
     let urlFoto = '';
 
-    if (fotoArchivo) {
-      const form = new FormData();
-      form.append('files', fotoArchivo.buffer, {
-        filename: fotoArchivo.originalname,
-        contentType: fotoArchivo.mimetype
-      });
-
-      const uploadFoto = await axios.post(
-        'https://idgonow.up.railway.app/api/v1/files/upload',
-        form,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.NOCODB_TOKEN}`,
-            ...form.getHeaders()
-          }
-        }
-      );
-
-      urlFoto = uploadFoto.data[0]?.url || '';
+    if (!fotoArchivo || !fotoArchivo.buffer || fotoArchivo.size === 0) {
+      console.error("⚠️ Archivo no válido o vacío");
+      throw new Error("Archivo no válido o vacío");
     }
+
+    const form = new FormData();
+    form.append('files', fotoArchivo.buffer, {
+      filename: fotoArchivo.originalname,
+      contentType: fotoArchivo.mimetype
+    });
+
+    console.log("📤 Subiendo archivo a NocoDB...");
+
+    const uploadFoto = await axios.post(
+      'https://idgonow.up.railway.app/api/v1/files/upload',
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.NOCODB_TOKEN}`,
+          ...form.getHeaders()
+        }
+      }
+    );
+
+    console.log("✅ Subida exitosa:", uploadFoto.data);
+
+    urlFoto = uploadFoto.data[0]?.url || '';
 
     const nuevoRegistro = {
       fields: {
@@ -50,6 +60,8 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
         Foto: urlFoto
       }
     };
+
+    console.log("📨 Enviando registro a NocoDB:", nuevoRegistro);
 
     const respuesta = await axios.post(
       'https://idgonow.up.railway.app/api/v2/tables/m1ebsgkhbspdiqq/records',
@@ -61,15 +73,17 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
       }
     );
 
+    console.log("✅ Registro creado:", respuesta.data);
+
     res.json({ success: true, token: tokenEdicion });
   } catch (err) {
-    console.error(err?.response?.data || err.message);
+    console.error("🔥 ERROR:", err?.response?.data || err.message);
     res.status(500).json({ success: false, error: 'Error al registrar los datos.' });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Servidor escuchando en puerto ${port}`);
+  console.log(`🚀 Servidor escuchando en puerto ${port}`);
 });
 
 
