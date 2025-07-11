@@ -26,7 +26,6 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
     let urlFoto = '';
 
     if (!fotoArchivo || !fotoArchivo.buffer || fotoArchivo.size === 0) {
-      console.error("⚠️ Archivo no válido o vacío");
       throw new Error("Archivo no válido o vacío");
     }
 
@@ -50,7 +49,6 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
     );
 
     console.log("✅ Subida exitosa:", uploadFoto.data);
-
     urlFoto = uploadFoto.data[0]?.url || '';
 
     const nuevoRegistro = {
@@ -74,8 +72,8 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
     );
 
     console.log("✅ Registro creado:", respuesta.data);
-
     res.json({ success: true, token: tokenEdicion });
+
   } catch (err) {
     console.error("🔥 ERROR:", err?.response?.data || err.message);
     res.status(500).json({ success: false, error: 'Error al registrar los datos.' });
