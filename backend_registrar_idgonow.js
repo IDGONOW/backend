@@ -24,23 +24,23 @@ app.post('/registrar', upload.single('Foto'), async (req, res) => {
 
     if (fotoArchivo) {
       const form = new FormData();
-      form.append('file', fotoArchivo.buffer, {
+      form.append('files', fotoArchivo.buffer, {
         filename: fotoArchivo.originalname,
         contentType: fotoArchivo.mimetype
       });
 
       const uploadFoto = await axios.post(
-        'https://idgonow.up.railway.app/api/v2/assets',
+        'https://idgonow.up.railway.app/api/v1/files/upload',
         form,
         {
           headers: {
-            ...form.getHeaders(),
-            'xc-token': process.env.NOCODB_TOKEN
+            Authorization: `Bearer ${process.env.NOCODB_TOKEN}`,
+            ...form.getHeaders()
           }
         }
       );
 
-      urlFoto = uploadFoto.data.downloadUrl;
+      urlFoto = uploadFoto.data[0]?.url || '';
     }
 
     const nuevoRegistro = {
